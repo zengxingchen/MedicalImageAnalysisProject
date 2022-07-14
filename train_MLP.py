@@ -78,7 +78,7 @@ for fold in range(n_folds):
     valid_label = torch.tensor(valid_label, dtype=torch.long).to(device)
     test_label = torch.tensor(labels[test_idx], dtype=torch.long).to(device)
 
-    Model = VAE(input_dim=train_data.size()[1], nhid=16, 
+    Model = MLP(input_dim=train_data.size()[1], nhid=16, 
               nclass=2, dropout=0.3, hidden_layer_size=hidden_layer_size)
     Model.to(device)
     optimizer = torch.optim.Adam(Model.parameters(), lr=0.00005, weight_decay=5e-5)
@@ -88,9 +88,8 @@ for fold in range(n_folds):
         optimizer.zero_grad()
         
         with torch.set_grad_enabled(True):
-            train_output, rec_f_loss, kl = Model(train_data)
-            ce_loss = loss_ce(train_output, train_label)
-            loss = ce_loss + kl + rec_f_loss
+            train_output  = Model(train_data)
+            loss = loss_ce(train_output, train_label)
             loss.backward()
             optimizer.step()
 
@@ -99,18 +98,17 @@ for fold in range(n_folds):
         train_acc = accuracy_score(train_label.detach().cpu().numpy(), train_pred)
         
         with torch.set_grad_enabled(False):  # 不在训练模式了，令计算图不累计梯度
-            valid_output, valid_rec_f_loss, valid_kl = Model(valid_data)
+            valid_output = Model(valid_data)
             
-            valid_ce_loss = loss_ce(valid_output, valid_label)
-            valid_loss = valid_ce_loss + valid_rec_f_loss + valid_kl
+            valid_loss = loss_ce(valid_output, valid_label)
+
             
             valid_pred = softmax_pipeline(valid_output.detach().cpu().numpy())
             valid_acc = accuracy_score(valid_label.detach().cpu().numpy(), valid_pred)
             
-            test_output, test_rec_f_loss, test_kl= Model(test_data)
-            test_ce_loss = loss_ce(test_output, test_label)
+            test_output = Model(test_data)
+            test_loss = loss_ce(test_output, test_label)
             
-            test_loss = test_ce_loss + test_rec_f_loss + test_kl
             test_pred = softmax_pipeline(test_output.detach().cpu().numpy())
             test_acc = accuracy_score(test_label.detach().cpu().numpy(), test_pred)
         
@@ -127,8 +125,6 @@ for fold in range(n_folds):
         
         train_acc_list.append(train_acc)
         val_acc_list.append(valid_acc)
-        kl_list.append(kl.item())
-        recf_list.append(rec_f_loss.item())
         # print("KL 散度: {:.4f}, rec_f_loss: {:.4f}".format(
         #         kl.item(), rec_f_loss.item()), end=" ") 
         # print(f"train_acc:{train_acc} valid_acc:{valid_acc}")
@@ -142,12 +138,13 @@ final_acc = accuracy_score(true_labels, all_pred)
 print('-'*89)
 print('| End of training | acc  {:6.2f}'.format(final_acc)
     )
-np.save(f"./result/test_{atlas}.npy", np.array(all_pred))
+# np.save(f"./result/test_{atlas}.npy", np.array(all_pred))
 
 
 result = Metric(np.array(true_labels), np.array(all_pred), soft=True, dim=1, datatype="numpy")
 
 with open('lab_records.txt', 'a') as f:
+
   f.write(f"================{atlas}================\n")
   f.write("ACC: {:.2f}%\n".format(result[0] * 100))
   f.write("AUC: {:.2f}%\n".format(result[1] * 100))

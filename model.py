@@ -95,3 +95,39 @@ class VAE(nn.Module):
         return output, sum_mse, kl
 
 
+
+class MLP(nn.Module):
+    def __init__(self, input_dim, nhid, nclass, dropout, hidden_layer_size):
+        super(MLP, self).__init__()
+  
+        self.mse_loss = torch.nn.MSELoss()
+        self.MLP = nn.Sequential(
+                # torch.nn.Linear(600, hidden_layer_size),
+                # torch.nn.ReLU(inplace=True),
+                # nn.Dropout(p=0.5),
+                # nn.BatchNorm1d(hidden_layer_size*4),
+                torch.nn.Linear(input_dim, hidden_layer_size*2),
+                nn.Dropout(p=0.5),
+                torch.nn.ReLU(inplace=True),
+                nn.BatchNorm1d(hidden_layer_size*2),
+                torch.nn.Linear(hidden_layer_size*2, hidden_layer_size),
+                nn.Dropout(p=0.5),
+                torch.nn.ReLU(inplace=True),
+                nn.BatchNorm1d(hidden_layer_size),
+                torch.nn.Linear(hidden_layer_size, nclass))
+        self.model_init()
+
+    def model_init(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.kaiming_normal_(m.weight)
+                m.weight.requires_grad = True
+                if m.bias is not None:
+                    m.bias.data.zero_()
+                    m.bias.requires_grad = True
+
+    def forward(self, x):
+        output = self.MLP(x)
+        return output
+
+   
