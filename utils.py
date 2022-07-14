@@ -1,6 +1,5 @@
 import random
 import numpy as np
-
 import torch
 
 
@@ -79,8 +78,6 @@ def Calc_All_Metric(result_list):
         np.mean(ALL_SPE_list)*100, np.std(ALL_SPE_list)*100))
     print("F1: {:.4}%±{:.3}%".format(
         np.mean(ALL_F1_list)*100, np.std(ALL_F1_list)*100))
-
-
 
 
 def set_seed(seed=0):
